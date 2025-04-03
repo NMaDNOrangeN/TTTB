@@ -24,23 +24,35 @@ def send_about(message):
         "Владельцем этого бота является пользователь @nmadnorangen. Бот ещё дорабатывается, поэтому ждите новых функций!\nНиже представлены ссылки на владельца:".format(message.from_user), reply_markup=markup
     )
 
-# # @bot.callback_query_handler()
-# # def 
+@bot.message_handler(commands=["help"])
+def send_help(message):
+    markup = types.InlineKeyboardMarkup()
+    commands_info = {
+        "about": "Эта функция позволяет Вам получить информацию о владельце этого бота",
+        "help": "Эта функция позволяет Вам получить информацию обо всех доступных на данный момент кнопках и их командах",
+        "joke": "Эта функция позволяет Вам получить случайную шутку или анекдот",
+        "math": "Эта функция позволяет Вам получить случайное уравнение с ответом",
+        "url_link": "Эта функция позволяет Вам получить ссылку на сайт-партнера"
+    }
+    
+    for cmd, desc in commands_info.items():
+        button = types.InlineKeyboardButton(cmd, callback_data=f"help-{cmd}")
+        markup.add(button)
+    
+    bot.send_message(message.chat.id, "Выберите команду для получения информации:", reply_markup=markup)
 
-# @bot.message_handler(commands=["help"])
-# def send_help(message):
-#     markup = types.InlineKeyboardMarkup()
-#     button1 = types.InlineKeyboardButton("about", None, "Эта функция позволяет Вам получить информацию о владельце этого бота")
-#     button2 = types.InlineKeyboardButton("help", None, "Эта функция позволяет Вам получить информацию обо всех доступных на данный момент кнопках и их командах")
-#     button3 = types.InlineKeyboardButton("joke", None, "Эта функция позволяет Вам получить случайную шутку или анекдот")
-#     button4 = types.InlineKeyboardButton("math", None, "Эта функция позволяет Вам получить случайное уравнение с ответом")
-#     button5 = types.InlineKeyboardButton("url_link", None, "Эта функция позволяет Вам получить ссылку на сайт-партнера")
-#     markup.add(button1, button2, button3, button4, button5)
-#     bot.send_message(
-#         message.chat.id,
-#         "Вам доступны следующие команды:".format(message.from_user), reply_markup=markup
-#     )
-
+@bot.callback_query_handler(func=lambda call: call.data.startswith("help-"))
+def send_command_info(call):
+    command = call.data.split("-")[1]
+    commands_info = {
+        "about": "Эта функция позволяет Вам получить информацию о владельце этого бота",
+        "help": "Эта функция позволяет Вам получить информацию обо всех доступных на данный момент кнопках и их командах",
+        "joke": "Эта функция позволяет Вам получить случайную шутку или анекдот",
+        "math": "Эта функция позволяет Вам получить случайное уравнение с ответом",
+        "url_link": "Эта функция позволяет Вам получить ссылку на сайт-партнера"
+    }
+    
+    bot.send_message(call.message.chat.id, commands_info.get(command, "Информация не найдена"))
 
 
 @bot.message_handler(commands=["joke"])
@@ -65,26 +77,47 @@ def send_joke(message):
     anek = anek.replace("<br />", "\n")
     bot.send_message(message.chat.id, anek.format(message.from_user), reply_markup=markup)
 
-
 def generate_math_equation():
-    num1 = random.randint(1, 50)
-    num2 = random.randint(1, 50)
-    operation = random.choice(['\\+', '\\-'])
+    num1 = random.randint(1, 20)
+    num2 = random.randint(1, 20)
+    result = random.randint(1, 20)
+    operation = random.choice(['+', '-'])
     
-    if operation == '\\+':
-        result = num1 + num2
-        equation = f"x {operation} {num2} \\= \\{result}"
+    if operation == '+':
+        equation = f"x {operation} {num2} = {result}"
+        correct_answer = result - num2
     else:
-        result = num1 - num2
-        equation = f"x {operation} {num2} \\= \\{result}"
+        equation = f"x {operation} {num2} = {result}"
+        correct_answer = result + num2
     
-    return equation, num1
-
+    options = [correct_answer, correct_answer + random.randint(1, 5), correct_answer - random.randint(1, 5), correct_answer + random.randint(2, 4)]
+    random.shuffle(options)
+    
+    return equation, correct_answer, options
 
 @bot.message_handler(commands=["math"])
 def send_math(message):
-    equation, num1 = generate_math_equation()
-    bot.reply_to(message, f"{equation} \\| x \\= ||{num1}||", parse_mode = "MarkdownV2")
+    equation, correct_answer, options = generate_math_equation()
+    markup = types.InlineKeyboardMarkup()
+    
+    for option in options:
+        button = types.InlineKeyboardButton(str(option), callback_data=f"math_{option}_{correct_answer}")
+        markup.add(button)
+    
+    bot.send_message(message.chat.id, f"Найдите x: {equation}", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("math_"))
+def check_answer(call):
+    try:
+        _, chosen_answer, correct_answer = call.data.split("_")
+        chosen_answer, correct_answer = int(chosen_answer), int(correct_answer)
+        
+        if chosen_answer == correct_answer:
+            bot.send_message(call.message.chat.id, "Ваш ответ верный!")
+        else:
+            bot.send_message(call.message.chat.id, "Ответ неверный")
+    except ValueError:
+        bot.send_message(call.message.chat.id, "Ошибка обработки ответа.")
 
 @bot.message_handler(commands=['url_link'])
 def link_give(message):
