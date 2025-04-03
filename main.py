@@ -24,42 +24,45 @@ def send_about(message):
         "Владельцем этого бота является пользователь @nmadnorangen. Бот ещё дорабатывается, поэтому ждите новых функций!\nНиже представлены ссылки на владельца:".format(message.from_user), reply_markup=markup
     )
 
-# @bot.callback_query_handler()
-# def 
+# # @bot.callback_query_handler()
+# # def 
 
-@bot.message_handler(commands=["help"])
-def send_help(message):
-    markup = types.InlineKeyboardMarkup()
-    button1 = types.InlineKeyboardButton("about", None, "Эта функция позволяет Вам получить информацию о владельце этого бота")
-    button2 = types.InlineKeyboardButton("help", None, "Эта функция позволяет Вам получить информацию обо всех доступных на данный момент кнопках и их командах")
-    button3 = types.InlineKeyboardButton("joke", None, "Эта функция позволяет Вам получить случайную шутку или анекдот")
-    button4 = types.InlineKeyboardButton("math", None, "Эта функция позволяет Вам получить случайное уравнение с ответом")
-    button5 = types.InlineKeyboardButton("url_link", None, "Эта функция позволяет Вам получить ссылку на сайт-партнера")
-    markup.add(button1, button2, button3, button4, button5)
-    bot.send_message(
-        message.chat.id,
-        "Вам доступны следующие команды:".format(message.from_user), reply_markup=markup
-    )
+# @bot.message_handler(commands=["help"])
+# def send_help(message):
+#     markup = types.InlineKeyboardMarkup()
+#     button1 = types.InlineKeyboardButton("about", None, "Эта функция позволяет Вам получить информацию о владельце этого бота")
+#     button2 = types.InlineKeyboardButton("help", None, "Эта функция позволяет Вам получить информацию обо всех доступных на данный момент кнопках и их командах")
+#     button3 = types.InlineKeyboardButton("joke", None, "Эта функция позволяет Вам получить случайную шутку или анекдот")
+#     button4 = types.InlineKeyboardButton("math", None, "Эта функция позволяет Вам получить случайное уравнение с ответом")
+#     button5 = types.InlineKeyboardButton("url_link", None, "Эта функция позволяет Вам получить ссылку на сайт-партнера")
+#     markup.add(button1, button2, button3, button4, button5)
+#     bot.send_message(
+#         message.chat.id,
+#         "Вам доступны следующие команды:".format(message.from_user), reply_markup=markup
+#     )
 
-html = requests.get(
-    f"https://xn--b1agaykvq.xn--p1ai/anekdoty/shutki/{random.randint(1,1200)}"
-)
-html.encoding = "utf-8"
-html_anekdoti = html.text
-
-anekdot = re.findall(r"<p itemprop=\"articleBody\">(.+)</p>", html_anekdoti)
-counter = 0
-for i in range(len(anekdot)):
-    counter += 1
 
 
 @bot.message_handler(commands=["joke"])
 def send_joke(message):
+    html = requests.get(
+        f"https://xn--b1agaykvq.xn--p1ai/anekdoty/shutki/{random.randint(1,1200)}"
+    )
+    html.encoding = "utf-8"
+    html_anekdoti = html.text
+
+    anekdot = re.findall(r"<p itemprop=\"articleBody\">(.+)</p>", html_anekdoti)
+    counter = 0
+    for i in range(len(anekdot)):
+        counter += 1
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button1 = types.KeyboardButton("Ещё один анекдот")
     button2 = types.KeyboardButton("Хватит анекдотов")
     markup.add(button1, button2)
     anek = anekdot[random.randint(0, counter - 1)]
+    anek = anek.replace("&quot;", '"')
+    anek = anek.replace("<br/>", "\n")
+    anek = anek.replace("<br />", "\n")
     bot.send_message(message.chat.id, anek.format(message.from_user), reply_markup=markup)
 
 
@@ -95,7 +98,7 @@ def answers(message):
     if(message.text == "Ещё один анекдот"):
         send_joke(message)
     elif(message.text == "Хватит анекдотов"):
-        bot.send_message(message.chat.id, text="Что будем делать дальше?")
+        bot.send_message(message.chat.id, text="Что будем делать дальше?", reply_markup=telebot.types.ReplyKeyboardRemove())
 
     elif message.text == "Как дела?":
         bot.reply_to(message, "У меня всё супер! А как Ваши?")
